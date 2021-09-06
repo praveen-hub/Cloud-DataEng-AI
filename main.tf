@@ -6,7 +6,7 @@ provider "aws" {
 
 resource "aws_s3_bucket" "bucket" {
   bucket = "my-tf-testl-bucktypm"
-  acl    = "private"
+  acl    = var.acl
 
   tags = {
     Name        = "My bucket"
