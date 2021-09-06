@@ -1,1 +1,1 @@
-acl    = "private"
+acl    = "public-read"
