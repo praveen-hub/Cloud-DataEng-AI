@@ -1,6 +1,6 @@
 import groovy.json.JsonOutput
 
-//jenkins env vars
+//jenkins env variables
 env.jenkins_node_custom_workspace_path = "/var/jenkins_home/workspace/Terraform-extension"
 
 pipeline {
