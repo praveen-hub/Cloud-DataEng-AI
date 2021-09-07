@@ -37,7 +37,7 @@ pipeline {
 		stage('Terraform Plan') {
             steps {
 				echo pwd
-				sh 'terraform plan --var-file =s3.tfvars -input=false'
+				sh 'terraform plan -input=false'
                 echo 'Terraform plan was initialised successfully'
             }
 		}
