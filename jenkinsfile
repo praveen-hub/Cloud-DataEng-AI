@@ -22,7 +22,8 @@ pipeline {
         }
         stage('Terraform Init') {
             steps {
-                echo pwd
+                sh "sh returnStatus: true, script: 'terraform workspace new dev'"
+		echo pwd
                 sh 'terraform init -input=false'
                 echo pwd
                 echo 'Terraform was initialised successfully'
