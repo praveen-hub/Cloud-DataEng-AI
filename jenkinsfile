@@ -1,0 +1,62 @@
+import groovy.json.JsonOutput
+
+//jenkins env vars
+env.jenkins_node_custom_workspace_path = "/var/jenkins_home/workspace/Terraform-extension"
+
+pipeline {
+    agent any
+    
+    tools {
+        terraform 'terraform-2'
+    }
+    
+    environment {
+        PATH = "${PATH}:${getTerraform()}"
+    }
+
+    stages {
+		stage('Git Checkout') {
+            steps {
+                git credentialsId: 'c2f6e4fd-fa6f-44d6-8d93-a5597da2489b', url: 'http://github.com/praveen-hub/AWS.git'
+            }
+        }
+        stage('Terraform Init') {
+            steps {
+                echo pwd
+                sh 'terraform init -input=false'
+                echo pwd
+                echo 'Terraform was initialised successfully'
+            }
+        }
+        stage('Terraform Format'){
+            steps {
+				  sh "terraform fmt"
+                }
+            }
+		stage('Terraform Plan') {
+            steps {
+				echo pwd
+				sh 'terraform plan --var-file =s3.tfvars -input=false'
+                echo 'Terraform plan was initialised successfully'
+            }
+		}
+		stage('Terraform Apply') {
+            steps {
+                sh 'terraform apply --auto-approve --var-file =s3.tfvars input=false'
+                echo 'Terraform was initialised successfully'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'cleaning Workspace'
+			deleteDir()
+        }
+    }
+}
+
+def getTerraform(){
+    def tfHome = tool name: 'terraform-2', type: 'terraform'
+    return tfHome
+}
