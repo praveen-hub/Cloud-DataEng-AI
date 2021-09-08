@@ -43,8 +43,8 @@ pipeline {
         stage('TF Format'){
             steps {
 				dir('s3/'){
-				//sh 'terraform workspace select ${workspace}'
-				sh 'terraform workspace select ${params.workspace} '
+				//sh 'terraform workspace select ${params.workspace}'
+				sh returnStatus: true, script: 'terraform workspace select ${params.workspace} '
 				sh "terraform fmt"
 				echo 'Terraform was aligned successfully'
 				}
@@ -53,7 +53,7 @@ pipeline {
 		stage('TF Plan') {
             steps {
 				dir('s3/'){
-				sh 'terraform workspace select ${params.workspace}'
+				sh returnStatus: true, script: 'terraform workspace select ${params.workspace}'
 				echo pwd
 				sh 'terraform plan -input=false --var-file=${params.workspace}.tfvars'
 				//sh 'terraform show -no-color tfplan > tfplan.txt'
@@ -64,7 +64,7 @@ pipeline {
 		stage('TF Apply') {
             steps {
 				dir('s3/'){
-			    sh 'terraform workspace select ${params.workspace} '
+			    sh returnStatus: true, script: 'terraform workspace select ${params.workspace} '
                 sh 'terraform apply --var-file=${params.workspace}.tfvars --auto-approve -input=false'
                 echo 'Terraform Applied successfully'
 				}
