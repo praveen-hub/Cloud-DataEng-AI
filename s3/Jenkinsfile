@@ -22,7 +22,7 @@ pipeline {
 		stage('Git Checkout') {
             steps { 
 				echo pwd
-				sh returnStatus: true, script: 'terraform workspace new ${params.workspace} '
+				sh returnStatus: true, script: 'terraform workspace new ${params.workspace}'
 				echo pwd 
                 git credentialsId: '3bb8a15a-876c-4fcc-b31d-82a6e5cd6529', url: 'https://github.com/praveen-hub/AWS.git'
 				echo pwd
@@ -32,7 +32,7 @@ pipeline {
             steps {
 				dir('s3/'){
 				echo pwd
-				sh 'terraform workspace select ${params.workspace} '
+				sh returnStatus: true, script: 'terraform workspace new ${params.workspace}'
 				echo pwd
                 sh 'terraform init -input=false'
                 echo pwd
