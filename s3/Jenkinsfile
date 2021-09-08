@@ -1,13 +1,18 @@
 import groovy.json.JsonOutput
 
 //jenkins env variables
-//env.jenkins_node_custom_workspace_path = "/var/jenkins_home/workspace/Terraform-extension"
+//env.jenkins_node_custom_workspace_path = "/var/jenkins_home/WorkSpace/Terraform-extension"
 
 pipeline {
     agent any
     
     tools {
         terraform 'terraform-2'
+    }
+	
+	parameters {
+		string(name: 'environment', defaultValue: 'dev', description: 'Workspace/environment file to use for deployment')
+		choice(name: 'workspace', defaultValue: 'dev',description: 'setting up workspace for terraform', choices: ['dev' , 'prod'])
     }
     
     environment {
@@ -16,7 +21,7 @@ pipeline {
 
     stages {
 		stage('Git Checkout') {
-            steps {
+            steps { 
 				echo pwd
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				echo pwd 
@@ -24,10 +29,11 @@ pipeline {
 				echo pwd
             }
         }
-        stage('Terraform Init') {
+        stage('TF Init') {
             steps {
 				dir('s3/'){
 				echo pwd
+				//sh 'terraform workspace select ${environment}'
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				echo pwd
                 sh 'terraform init -input=false'
@@ -36,39 +42,41 @@ pipeline {
 				}
             }
         }
-        stage('Terraform Format'){
+        stage('TF Format'){
             steps {
 				dir('s3/'){
+				//sh 'terraform workspace select ${environment}'
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				sh "terraform fmt"
 				}
                 }
             }
-		stage('Terraform Plan') {
+		stage('TF Plan') {
             steps {
 				dir('s3/'){
+				//sh 'terraform workspace select ${environment}'
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				echo pwd
-				sh 'terraform plan -var-file=s3.tfvars -input=false'
+				sh 'terraform plan --var-file=${params.workspace}.tfvars" -input=false -out tfplan'
+				sh 'terraform show -no-color tfplan > tfplan.txt'
                 echo 'Terraform plan was initialised successfully'
 				}
             }
 		}
-		stage('Terraform Apply') {
+		stage('TF Apply') {
             steps {
 				dir('s3/'){
+				//sh 'terraform workspace select ${environment}'
 			    sh returnStatus: true, script: 'terraform workspace new dev '
-                sh 'terraform apply -var-file=s3.tfvars --auto-approve -input=false'
-                echo 'Terraform was initialised successfully'
+                sh 'terraform apply --var-file=${params.workspace}.tfvars" --auto-approve -input=false tfplan'
+                echo 'Terraform Applied successfully'
 				}
             }
         }
     }
-
-    post {
+	post {
         always {
-            echo 'cleaning Workspace'
-			deleteDir()
+            archiveArtifacts artifacts: 'tfplan.txt'
         }
     }
 }
