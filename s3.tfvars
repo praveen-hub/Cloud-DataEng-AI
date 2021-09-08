@@ -1,1 +1,1 @@
-acl    = "public-read"
+acl="public-read-write"
