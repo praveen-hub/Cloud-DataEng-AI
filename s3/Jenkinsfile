@@ -11,9 +11,8 @@ pipeline {
     }
 	
 	parameters {
-		string(name: 'environment', defaultValue: 'dev', description: 'Workspace/environment file to use for deployment')
-		choice(name: 'workspace', defaultValue: 'dev',description: 'setting up workspace for terraform', choices: ['dev' , 'prod'])
-    }
+		choice choices: ['dev', 'prod'], description: 'Describes the Environment', name: 'workspace'
+	}
     
     environment {
         PATH = "${PATH}:${getTerraform()}"
