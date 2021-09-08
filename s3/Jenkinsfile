@@ -22,7 +22,7 @@ pipeline {
 		stage('Git Checkout') {
             steps { 
 				echo pwd
-				sh returnStatus: true, script: 'terraform workspace new dev '
+				sh returnStatus: true, script: 'terraform workspace new ${workspace} '
 				echo pwd 
                 git credentialsId: '3bb8a15a-876c-4fcc-b31d-82a6e5cd6529', url: 'https://github.com/praveen-hub/AWS.git'
 				echo pwd
@@ -32,7 +32,7 @@ pipeline {
             steps {
 				dir('s3/'){
 				echo pwd
-				sh returnStatus: true, script: 'terraform workspace new dev '
+				sh returnStatus: true, script: 'terraform workspace select ${params.workspace} '
 				echo pwd
                 sh 'terraform init -input=false'
                 echo pwd
@@ -43,8 +43,8 @@ pipeline {
         stage('TF Format'){
             steps {
 				dir('s3/'){
-				//sh 'terraform workspace select ${environment}'
-				sh returnStatus: true, script: 'terraform workspace new dev '
+				//sh 'terraform workspace select ${workspace}'
+				sh returnStatus: true, script: 'terraform workspace select ${params.workspace} '
 				sh "terraform fmt"
 				}
                 }
@@ -52,9 +52,9 @@ pipeline {
 		stage('TF Plan') {
             steps {
 				dir('s3/'){
-				sh returnStatus: true, script: 'terraform workspace new dev '
+				sh returnStatus: true, script: 'terraform workspace select ${workspace}'
 				echo pwd
-				sh 'terraform plan -input=false -out tfplan --var-file=${workspace}.tfvars '
+				sh 'terraform plan -input=false -out tfplan --var-file=${params.workspace}.tfvars '
 				sh 'terraform show -no-color tfplan > tfplan.txt'
                 echo 'Terraform plan was initialised successfully'
 				}
@@ -63,7 +63,7 @@ pipeline {
 		stage('TF Apply') {
             steps {
 				dir('s3/'){
-			    sh returnStatus: true, script: 'terraform workspace new dev '
+			    sh returnStatus: true, script: 'terraform workspace select ${workspace} '
                 sh 'terraform apply --var-file=${workspace}.tfvars --auto-approve -input=false tfplan'
                 echo 'Terraform Applied successfully'
 				}
