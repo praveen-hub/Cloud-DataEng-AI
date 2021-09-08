@@ -54,7 +54,7 @@ pipeline {
 				dir('s3/'){
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				echo pwd
-				sh 'terraform plan --var-file=${params.workspace}.tfvars -input=false -out tfplan'
+				sh 'terraform plan -input=false -out tfplan --var-file=${params.workspace}.tfvars '
 				sh 'terraform show -no-color tfplan > tfplan.txt'
                 echo 'Terraform plan was initialised successfully'
 				}
