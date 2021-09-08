@@ -17,7 +17,7 @@ pipeline {
     stages {
 		stage('Git Checkout') {
             steps {
-                git credentialsId: '9870af8a-cbd1-4507-874a-4b6c0e4025df', url: 'http://github.com/praveen-hub/AWS.git'
+                git credentialsId: '3bb8a15a-876c-4fcc-b31d-82a6e5cd6529', url: 'https://github.com/praveen-hub/AWS.git'
             }
         }
         stage('Terraform Init') {
@@ -30,13 +30,13 @@ pipeline {
         }
         stage('Terraform Format'){
             steps {
-				  sh "terraform fmt"
+		 sh "terraform fmt"
                 }
             }
 		stage('Terraform Plan') {
             steps {
-				echo pwd
-				sh 'terraform plan -input=false'
+		  echo pwd
+		  sh 'terraform plan -input=false'
                 echo 'Terraform plan was initialised successfully'
             }
 		}
