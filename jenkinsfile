@@ -42,7 +42,7 @@ pipeline {
 		}
 		stage('Terraform Apply') {
             steps {
-                sh 'terraform apply --auto-approve --var-file =s3.tfvars input=false'
+                sh 'terraform apply --auto-approve --var-file =s3.tfvars -input=false'
                 echo 'Terraform was initialised successfully'
             }
         }
