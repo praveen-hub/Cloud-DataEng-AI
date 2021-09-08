@@ -1,1 +1,1 @@
-acl="public-read-write"
+bucket="mpl-imt-lok-buckt"
