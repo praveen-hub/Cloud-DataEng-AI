@@ -1,7 +1,7 @@
 import groovy.json.JsonOutput
 
 //jenkins env variables
-env.jenkins_node_custom_workspace_path = "/var/jenkins_home/workspace/Terraform-extension"
+//env.jenkins_node_custom_workspace_path = "/var/jenkins_home/workspace/Terraform-extension"
 
 pipeline {
     agent any
@@ -17,12 +17,18 @@ pipeline {
     stages {
 		stage('Git Checkout') {
             steps {
+				echo pwd
+				sh returnStatus: true, script: 'terraform workspace new dev '
+				echo pwd 
                 git credentialsId: '3bb8a15a-876c-4fcc-b31d-82a6e5cd6529', url: 'https://github.com/praveen-hub/AWS.git'
+				echo pwd
             }
         }
         stage('Terraform Init') {
             steps {
-		echo pwd
+				echo pwd
+				sh returnStatus: true, script: 'terraform workspace new dev '
+				echo pwd
                 sh 'terraform init -input=false'
                 echo pwd
                 echo 'Terraform was initialised successfully'
@@ -35,14 +41,16 @@ pipeline {
             }
 		stage('Terraform Plan') {
             steps {
-		  echo pwd
-		  sh 'terraform plan -input=false'
+				sh returnStatus: true, script: 'terraform workspace new dev '
+				echo pwd
+				sh 'terraform plan -var-file=s3.tfvars -input=false'
                 echo 'Terraform plan was initialised successfully'
             }
 		}
 		stage('Terraform Apply') {
             steps {
-                sh 'terraform apply --auto-approve -input=false'
+			    sh returnStatus: true, script: 'terraform workspace new dev '
+                sh 'terraform apply -var-file=s3.tfvars --auto-approve -input=false'
                 echo 'Terraform was initialised successfully'
             }
         }
