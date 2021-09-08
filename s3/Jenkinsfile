@@ -70,6 +70,7 @@ pipeline {
     }
 	post {
         always {
+			deleteDir()
             echo 'Successfully Deployed'
 			//archiveArtifacts artifacts: 'tfplan.txt'
         }
