@@ -43,7 +43,8 @@ pipeline {
         stage('TF Format'){
             steps {
 				dir('s3/'){
-				sh returnStatus: true, script: 'terraform workspace new ${params.workspace}'
+				//sh 'terraform workspace select ${params.workspace}'
+				sh returnStatus: true, script: 'terraform workspace select ${params.workspace} '
 				sh "terraform fmt"
 				echo 'Terraform was aligned successfully'
 				}
@@ -52,9 +53,9 @@ pipeline {
 		stage('TF Plan') {
             steps {
 				dir('s3/'){
-				sh returnStatus: true, script: 'terraform workspace new ${params.workspace}'
+				sh returnStatus: true, script: 'terraform workspace select ${params.workspace}'
 				echo pwd
-				sh 'terraform plan -input=false --var-file=dev.tfvars'
+				sh "terraform plan -input=false --var-file=${params.workspace}.tfvars"
 				//sh 'terraform show -no-color tfplan > tfplan.txt'
                 echo 'Terraform plan was initialised successfully'
 				}
@@ -63,8 +64,8 @@ pipeline {
 		stage('TF Apply') {
             steps {
 				dir('s3/'){
-				sh returnStatus: true, script: 'terraform workspace new ${params.workspace}'
-                sh 'terraform apply --var-file=${workspace}.tfvars --auto-approve -input=false'
+			    sh returnStatus: true, script: 'terraform workspace select ${params.workspace}'
+                sh "terraform apply --var-file=${params.workspace}.tfvars --auto-approve -input=false"
                 echo 'Terraform Applied successfully'
 				}
             }
@@ -72,8 +73,8 @@ pipeline {
     }
 	post {
         always {
-            echo 'Successfully Deployed'
-			//archiveArtifacts artifacts: 'tfplan.txt'
+            //echo 'Successfully Deployed'
+			archiveArtifacts artifacts: 'tfplan.txt'
         }
     }
 }
