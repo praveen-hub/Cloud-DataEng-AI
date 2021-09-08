@@ -40,7 +40,7 @@ pipeline {
             steps {
 				dir('s3/'){
 				sh returnStatus: true, script: 'terraform workspace new dev '
-				sh "terraform fmt -list=true -write=false -diff=true -check=true"
+				sh "terraform fmt"
 				}
                 }
             }
