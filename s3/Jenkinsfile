@@ -32,7 +32,6 @@ pipeline {
             steps {
 				dir('s3/'){
 				echo pwd
-				//sh 'terraform workspace select ${environment}'
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				echo pwd
                 sh 'terraform init -input=false'
@@ -53,7 +52,6 @@ pipeline {
 		stage('TF Plan') {
             steps {
 				dir('s3/'){
-				//sh 'terraform workspace select ${environment}'
 				sh returnStatus: true, script: 'terraform workspace new dev '
 				echo pwd
 				sh 'terraform plan --var-file=${params.workspace}.tfvars" -input=false -out tfplan'
@@ -65,7 +63,6 @@ pipeline {
 		stage('TF Apply') {
             steps {
 				dir('s3/'){
-				//sh 'terraform workspace select ${environment}'
 			    sh returnStatus: true, script: 'terraform workspace new dev '
                 sh 'terraform apply --var-file=${params.workspace}.tfvars" --auto-approve -input=false tfplan'
                 echo 'Terraform Applied successfully'
