@@ -55,8 +55,8 @@ pipeline {
 				dir('s3/'){
 				sh returnStatus: true, script: 'terraform workspace select ${params.workspace}'
 				echo pwd
-				sh 'terraform plan -input=false -out tfplan --var-file=${params.workspace}.tfvars '
-				sh 'terraform show -no-color tfplan > tfplan.txt'
+				sh 'terraform plan -input=false --var-file=${params.workspace}.tfvars'
+				//sh 'terraform show -no-color tfplan > tfplan.txt'
                 echo 'Terraform plan was initialised successfully'
 				}
             }
@@ -65,7 +65,7 @@ pipeline {
             steps {
 				dir('s3/'){
 			    sh returnStatus: true, script: 'terraform workspace select ${params.workspace} '
-                sh 'terraform apply --var-file=${params.workspace}.tfvars --auto-approve -input=false tfplan'
+                sh 'terraform apply --var-file=${params.workspace}.tfvars --auto-approve -input=false'
                 echo 'Terraform Applied successfully'
 				}
             }
@@ -73,7 +73,8 @@ pipeline {
     }
 	post {
         always {
-            archiveArtifacts artifacts: 'tfplan.txt'
+            //echo 'Successfully Deployed'
+			archiveArtifacts artifacts: 'tfplan.txt'
         }
     }
 }
