@@ -1,0 +1,134 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext 
+from awsglue.job import Job
+from pyspark.sql import *
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
+from awsglue.dynamicframe import DynamicFrame
+from datetime import datetime as d
+
+
+## @params: [TempDir, JOB_NAME]
+args = getResolvedOptions(sys.argv, ['TempDir','JOB_NAME'])
+
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+args = getResolvedOptions(sys.argv, ['JOB_NAME','username','password'])
+job.init(args['JOB_NAME'], args)
+
+## @type: DataSource
+## @args: [database = "phani-svb-filebased", table_name = "source1", redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasource1"]
+## @return: datasource1
+## @inputs: []
+datasource1 = glueContext.create_dynamic_frame.from_catalog(database = "phani-svb-filebased", table_name = "source1",redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasource1")
+
+df1 = datasource1.toDF()
+
+## @type: DataSource
+## @args: [database = "phani-svb-filebased", table_name = "source2", redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasource2"]
+## @return: datasource2
+## @inputs: []
+datasource2 = glueContext.create_dynamic_frame.from_catalog(database = "phani-svb-filebased", table_name = "source2", redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasource2")
+
+df2 = datasource2.toDF()
+
+## @type: DataSource
+## @args: [database = "phani-svb-filebased", table_name = "source2", redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasource2"]
+## @return: datasource3
+## @inputs: []
+datasource3 = glueContext.create_dynamic_frame.from_catalog(database = "phani-svb-filebased", table_name = "source3", redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasource2")
+
+df3 = datasource3.toDF()
+
+#Left Join on Dataframes
+#dfjoin = df1.join(df2, df1.age1 == df2.age2, how='left')
+
+#selectexp on dataframes
+#dfselect = dfjoin.select("age1","gender1","country1","age2","gender2","country2")
+
+#Join operation on three dataframes
+df4 = df1.join(df2).where(df1["age1"] == df2["age2"]).join(df3).where(df1["age1"] == df3["age3"])
+
+#Converting epoch time to timestamp
+df4 = df4.withColumn("epochtimestamp",f.to_timestamp(df4["epochtimeSource"]/1000))
+
+#Removing time from timestamp and displaying just date
+df4 = df4.withColumn("epochtimeConverted", f.to_date(df4.epochtimestamp.cast(dataType=t.TimestampType())))
+
+#Presenting current timestamp and date difference
+df4 = df4.withColumn("current_date_now",f.current_date()).withColumn("datediff",f.datediff(f.current_date(),df4["epochtimeConverted"]))
+
+
+#Changing the date format
+df4 = df4.withColumn("epochtimeConverted",f.date_format(df4["epochtimeConverted"],"dd-MM-yyyy")).withColumn("current_date_now",f.date_format(df4["current_date_now"],"dd-MM-yyyy"))
+
+
+
+#Format 1 : From line 68, converting dataframe back to dynamicframe and pushing to redshift
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#converting dataframe back to dynamic frame
+#df = DynamicFrame.fromDF(df4, glueContext, "df")
+
+## @type: SelectFields
+## @args: [paths = ["paths"], transformation_ctx = "selectexp"]
+## @return: <output>
+## @inputs: [frame = <frame>]
+#selectexp = SelectFields.apply(frame = df, paths = ["age1","gender1","country1","age2","gender2","country2","age3","gender3","country3","epochtimeSource","epochtimestamp","epochtimeConverted","current_date_now","datediff"], transformation_ctx = "selectexp")
+
+
+## @type: DataSink
+## @args: [catalog_connection = "phani-redshift-filebased", connection_options = {"dbtable": "source1", "database": "mergedb"}, redshift_tmp_dir = TempDir, transformation_ctx = "datasink4"]
+## @return: datasink4
+## @inputs: [frame = dropnullfields3]
+#datasink4 = glueContext.write_data_frame.from_jdbc_conf(frame = selectexp, catalog_connection = "phani-redshift-filebased", connection_options = {"dbtable": "mergetab", "database": "dev"}, redshift_tmp_dir = args["TempDir"], transformation_ctx = "datasink4")
+
+
+
+
+
+#Format 2 : From line 68, pushing the dataframe directly to redshift
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+df4select = df4.select("age1","gender1","country1","age2","gender2","country2","age3","gender3","country3","epochtimeSource","epochtimestamp","epochtimeConverted","current_date_now","datediff")
+
+
+df5 = df4select.write.partitionBy("country1").format("jdbc").option("url","jdbc:redshift://poc-redshift-cluster-1.cmi78pytb80d.us-west-2.redshift.amazonaws.com:5439/dev")\
+.option("dbtable","public.mergetab1").option("user",args['username']) .option("password",args['password']).mode("overwrite").save()
+
+#df5 = df4select.write.format("jdbc").partitionBy("country1").option("url","jdbc:redshift://poc-redshift-cluster-1.cmi78pytb80d.us-west-2.redshift.amazonaws.com:5439/dev").option("dbtable","public.mergetab1").option("user",args['username']) .option("password",args['password']).mode("overwrite").save()
+
+
+
+#Loading the dynamicframe which is in line 82 to s3 bucket
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+## @type: DataSink
+## @args: [connection_type = "s3", connection_options = {"path":"s3://aws-logs-197183385700-us-west-2/Merge/MergePartition"}, format = "csv", format_options = <format_options>, transformation_ctx = "<transformation_ctx>"]
+## @return: <output>
+## @inputs: [frame = <frame>]
+
+'''dfs3 = glueContext.write_dynamic_frame.from_options(frame = selectexp, connection_type = "s3", 
+connection_options = {"path":"s3://aws-logs-197183385700-us-west-2/Merge/MergePartition"}, 
+format = "csv", format_options = {"separator": ","}, transformation_ctx = "dfs3")'''
+
+
+#Loading the dataframe which is in line 100 to s3 bucket
+#------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+dfrep = df4select.repartition(1)
+
+dfrep.write.option("header",True).format("csv").option("sep", ",").mode("overwrite")\
+.save("s3://aws-logs-197183385700-us-west-2/Merge/MergePartition1/",partitionBy=['country3'])
+
+#df4select.write.csv("s3://aws-logs-197183385700-us-west-2/Merge/MergePartition1/",partitionBy=['country1'])
+
+job.commit()
+
+
