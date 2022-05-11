@@ -1,0 +1,31 @@
+{
+  "Comment": "An example of the Amazon States Language using a map state to process elements of an array with a max concurrency of 2.",
+  "StartAt": "Mapper",
+  "States": {
+    "Mapper": {
+      "Type": "Map",
+      "InputPath": "$",
+      "ItemsPath": "$.logGroups",
+      "ResultPath": "$.array",
+      "MaxConcurrency": 1,
+      "Iterator": {
+        "StartAt": "Map",
+        "States":{
+          "Map": {
+            "Type": "Task",
+            "Resource":"arn:aws:lambda:ap-south-1:535464033227:function:LambdaTriggerStep",
+            "Next": "Complete"
+          },
+          "Complete": {
+            "Type": "Pass",
+            "End": true
+          
+          }
+        }
+      },     
+    "ResultPath": "$",
+      "End": true
+    }
+  }
+}
+
