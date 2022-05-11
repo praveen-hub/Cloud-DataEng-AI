@@ -1,0 +1,82 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from pyspark.sql import DataFrame, Row
+import datetime
+from awsglue import DynamicFrame
+import pyspark.sql.functions as F
+import boto3
+
+## @params: [JOB_NAME]
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+## @type: DataSource
+## @args: [stream_type = kafka, stream_batch_time = "100 seconds", database = "sathish-svb-poc-db", additionalOptions = {"startingOffsets": "earliest", "inferSchema": "true"}, stream_checkpoint_location = "s3://svb-poc-file-bkt/sathish/msktest3/checkpoint/", table_name = "student"]
+## @return: datasource0
+## @inputs: []
+data_frame_datasource0 = glueContext.create_data_frame.from_catalog(database = "sathish-svb-poc-db", table_name = "student", transformation_ctx = "datasource0", additional_options = {"startingOffsets": "earliest", "inferSchema": "true"})
+def processBatch(data_frame, batchId):
+    if (data_frame.count() > 0):
+        datasource0 = DynamicFrame.fromDF(data_frame, glueContext, "from_data_frame")
+        ###
+        #Convert DynamicFrame to DataFrame
+        df = datasource0.toDF()
+        #Convert struct type to json type if the columns there
+        if 'data' in df.columns:
+            # print(df.show())
+            # df.printSchema()
+            data_col_list = df.select("data.*").columns
+            for col_name in data_col_list:
+                df = df.withColumn(col_name, df.data.getField(col_name))
+            # df = (df.withColumn("data", F.to_json(df.data)))
+        if 'metadata' in df.columns:
+            operation = df.select('metadata.operation').rdd.flatMap(lambda x: x).collect()[0]
+            pre_action_query = ""
+            # if operation == 'rename-column':
+            #     old_columns = df.select('control.old-table-def.columns.*').columns
+            #     new_columns = df.select('control.table-def.columns.*').columns
+            #     new_old_renamed_column = list(set(old_columns) ^ set(new_columns))
+            #     pre_action_query = "ALTER TABLE \"dev\".\"public\".\"sathish-student-streaming\" RENAME COLUMN "+ new_old_renamed_column[1] + " TO " + new_old_renamed_column[0] + ";"
+            #     print(pre_action_query)
+            df = (df.withColumn("metadata", F.to_json(df.metadata)))
+            # df = df.drop("metadata")
+            df = df.drop("data")
+        if 'control' in df.columns:
+            # df = (df.withColumn("control", F.to_json(df.control)))
+            df = df.drop("control")
+        #Convert DataFrame to DynamicFrame
+        datasource0 = DynamicFrame.fromDF(df, glueContext, "from_data_frame")
+        ###
+        
+        ## @type: DataSink
+        ## @args: [stream_batch_time = "100 seconds", stream_checkpoint_location = "s3://svb-poc-file-bkt/sathish/msktest3/checkpoint/", connection_type = "s3", path = "s3://svb-poc-file-bkt/sathish/msktest3", format = "json", transformation_ctx = "datasink1"]
+        ## @return: datasink1
+        ## @inputs: [frame = datasource0]
+        # now = datetime.datetime.now()
+        # year = now.year
+        # month = now.month
+        # day = now.day
+        # hour = now.hour
+        # minute = now.minute
+        #path_datasink1 = "s3://svb-poc-file-bkt/sathish/msktest3" + "/ingest_year=" + "{:0>4}".format(str(year)) + "/ingest_month=" + "{:0>2}".format(str(month)) + "/ingest_day=" + "{:0>2}".format(str(day)) + "/ingest_hour=" + "{:0>2}".format(str(hour)) + "/ingest_minute=" + "{:0>2}".format(str(minute)) + "/"
+        #path_datasink1 = "s3://svb-poc-file-bkt/sathish/msktest3/"
+        #datasink1 = glueContext.write_dynamic_frame.from_options(frame = datasource0, connection_type = "s3", connection_options = {"path": path_datasink1}, format = "json", transformation_ctx = "datasink1")
+        
+        additionalOptions_datasink1 = {"enableUpdateCatalog": True}
+        datasink1 = glueContext.write_dynamic_frame.from_catalog(frame = datasource0, database = "sathish-svb-poc-db", table_name = "msktest3", transformation_ctx = "datasink1", additional_options = additionalOptions_datasink1)
+        
+        #Run crawler if schema changes
+        if operation in ["rename-column", "add-column", "column-type-change"]:
+            print("##GLUE CRAWLER OPERATION#")
+            glue_client = boto3.client('glue', region_name='us-west-2')
+            glue_client.start_crawler(Name='sathish-test-s3-streaming-3')
+glueContext.forEachBatch(frame = data_frame_datasource0, batch_function = processBatch, options = {"windowSize": "100 seconds", "checkpointLocation": "s3://aws-glue-temporary-197183385700-us-west-2/sathish.saminathan@clairvoyantsoft.com/job3/checkpoint/"})
+job.commit()
