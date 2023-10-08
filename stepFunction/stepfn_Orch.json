@@ -1,0 +1,200 @@
+{
+  "Comment": "ETL Orchestration",
+  "StartAt": "PrepareRawToRefinedCrawler",
+  "States": {
+    "PrepareRawToRefinedCrawler": {
+      "Type": "Parallel",
+      "End": true,
+      "Branches": [
+        {
+          "StartAt": "InvokeRawToRefinedCrawlerActivity",
+          "States": {
+            "InvokeRawToRefinedCrawlerActivity": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:us-west-2:XXXXXXXXXXXX:activity:glue-lambda-step-function",
+              "TimeoutSeconds": 3600,
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "Next": "RawToRefinedCrawlerFailed"
+                },
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "RawToRefinedCrawlerFailed"
+                }
+              ],
+              "Next": "RawToRefinedCrawlerPassed"
+            },
+            "RawToRefinedCrawlerFailed": {
+              "Type": "Fail",
+              "Cause": "File Transfer Failed"
+            },
+            "RawToRefinedCrawlerPassed": {
+              "Type": "Pass",
+              "Result": "File Transfer Passed. Send SES emails etc to admin.",
+              "Next": "PrepareFileConversionETL"
+            },
+            "PrepareFileConversionETL": {
+              "Type": "Parallel",
+              "End": true,
+              "Branches": [
+                {
+                  "StartAt": "InvokeFileConversionETLActivity",
+                  "States": {
+                    "InvokeFileConversionETLActivity": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:states:us-west-2:XXXXXXXXXXXX:activity:glue-lambda-step-function",
+                      "TimeoutSeconds": 3600,
+                      "Catch": [
+                        {
+                          "ErrorEquals": [
+                            "States.TaskFailed"
+                          ],
+                          "Next": "FileConversionETLFailed"
+                        },
+                        {
+                          "ErrorEquals": [
+                            "States.ALL"
+                          ],
+                          "Next": "FileConversionETLFailed"
+                        }
+                      ],
+                      "Next": "FileConversionETLPassed"
+                    },
+                    "FileConversionETLFailed": {
+                      "Type": "Fail",
+                      "Cause": "File Transfer Failed"
+                    },
+                    "FileConversionETLPassed": {
+                      "Type": "Pass",
+                      "Result": "File Transfer Passed. Send SES emails etc to admin.",
+                      "End": true
+                    }
+                  }
+                },
+                {
+                  "StartAt": "WaitForFileConversionETLWorker",
+                  "States": {
+                    "WaitForFileConversionETLWorker": {
+                      "Type": "Wait",
+                      "Seconds": 10,
+                      "Next": "InvokeFileConversionETLWorker"
+                    },
+                    "InvokeFileConversionETLWorker": {
+                      "Type": "Task",
+                      "Resource": "arn:aws:lambda:us-west-2:XXXXXXXXXXXX:function:invoke-file-type-conversion-glue-job",
+                      "Catch": [
+                        {
+                          "ErrorEquals": [
+                            "States.TaskFailed"
+                          ],
+                          "Next": "FileConversionETLWorkerFailed"
+                        },
+                        {
+                          "ErrorEquals": [
+                            "States.ALL"
+                          ],
+                          "Next": "FileConversionETLWorkerFailed"
+                        }
+                      ],
+                      "Next": "FileConversionETLWorkerPassed"
+                    },
+                    "FileConversionETLWorkerFailed": {
+                      "Type": "Fail",
+"Cause": "File Conversion ETL Failed"
+},
+                    "FileConversionETLWorkerPassed": {
+                      "Type": "Pass",
+                      "Result": "RefinedToCuratedETLWorker Passed.",
+                      "End": true
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "WaitForRawToRefinedCrawlerWorkerAvailability",
+          "States": {
+            "WaitForRawToRefinedCrawlerWorkerAvailability": {
+              "Type": "Wait",
+              "Seconds": 5,
+              "Next": "InvokeRawToRefinedCrawlerWorker"
+            },
+            "InvokeRawToRefinedCrawlerWorker": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-2:XXXXXXXXXXXX:function:invoke-raw-refined-crawler",
+              "TimeoutSeconds": 300,
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "WaitForRawToRefinedCrawlerToComplete"
+                }
+              ],
+              "Next": "WaitForRawToRefinedCrawlerToComplete"
+            },
+            "WaitForRawToRefinedCrawlerToComplete": {
+              "Type": "Wait",
+              "Seconds": 10,
+              "Next": "RawToRefinedCrawlerCheckStatus"
+            },
+            "RawToRefinedCrawlerCheckStatus": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-2:XXXXXXXXXXXX:function:check-raw-refined-crawler-status",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "CrawlerException"
+                  ],
+                  "IntervalSeconds": 30,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 10
+                },
+                {
+                  "ErrorEquals": [
+                    "States.All"
+                  ],
+                  "IntervalSeconds": 30,
+                  "BackoffRate": 2,
+                  "MaxAttempts": 10
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "CrawlerException"
+                  ],
+                  "Next": "RawToRefinedCrawlerCheckFailed"
+                },
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "RawToRefinedCrawlerCheckFailed"
+                }
+              ],
+              "Next": "RawToRefinedCrawlerCheckPassed"
+            },
+            "RawToRefinedCrawlerCheckFailed": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-2:XXXXXXXXXXXX:function:crawler-activity-fail",
+              "End": true
+            },
+            "RawToRefinedCrawlerCheckPassed": {
+              "Type": "Pass",
+              "Result": "RawToRefinedCrawlerCheckPassed.",
+              "End": true
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "Comment": "Example to trigger Glue Job from Step Function",
+  "StartAt": "Trigger Glue",
+  "States": {
+    "Trigger Glue": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "mypythonjob"
+      },
+      "Next": "Send Completion Email"
+    },
+    "Send Completion Email": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "Message": {
+          "Input": "Glue Job Completed !"
+        },
+        "TopicArn": "<Topic ARN>"
+      },
+      "End": true
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "Comment": "A Hello World example of the Amazon States Language using Pass states",
+  "StartAt": "Reading Data from Database",
+  "States": {
+
+    "Reading Data from Database": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.statusCode",
+          "StringEquals": "200",
+          "Next": "Push to S3"
+        },
+        {
+          "Variable": "$.statusCode",
+          "StringEquals": "-1",
+          "Next": "Fail State"
+        }
+      ],
+      "Default": "DefaultState"
+    },
+
+    "Push to S3": {
+      "Type": "Pass",
+      "Result": {
+        "status": 200,
+        "message": "state statusCode200State says Hello"
+      },
+      "End": true
+    },
+
+    "Fail State": {
+      "Type": "Pass",
+      "Result": {
+        "status": 200,
+        "message": "state statusCodeNegativeOneState says Hello"
+      },
+      "End": true
+    },
+
+    "DefaultState": {
+      "Type": "Pass",
+      "Result": {
+        "status": 200,
+        "message": "state DefaultState says Hello"
+      },
+      "End": true
+    }
+  }
+}
