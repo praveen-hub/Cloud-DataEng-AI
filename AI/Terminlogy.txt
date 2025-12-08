@@ -1,0 +1,25 @@
+ML (Machine Learning): Algorithms that learn patterns from data to make predictions or decisions.
+
+DL (Deep Learning): A subset of ML that uses multi-layer neural networks to automatically learn complex representations.
+
+NN (Neural Networks): Computing models inspired by the human brain, made of interconnected nodes (neurons) used for pattern recognition.
+
+NLP (Natural Language Processing): AI field that enables machines to understand, interpret, and generate human language.
+
+GenAI (Generative AI): AI models that create new content such as text, images, audio, or code based on learned patterns.
+
+FM (Foundation Models): Large, pre-trained, general-purpose AI models that can be adapted to many tasks (e.g., GPT, PaLM, LLaMA).
+
+LLM (Large Language Model): A type of FM trained on massive text data to understand and generate human-like language.
+
+Deepfakes: AI-generated fake images or videos that realistically imitate real people by manipulating faces or voices.
+
+Transformers: A neural network architecture that uses self-attention to process sequences in parallel for tasks like NLP and vision.
+
+Labelled Data: Data that includes both input and the correct output (ground truth) for supervised learning.
+
+Unlabelled Data: Data that has inputs only, with no associated output labels, used in unsupervised or semi-supervised learning.
+
+Encoders: Neural network components that convert input data into meaningful compressed representations.
+
+Decoders: Neural network components that take encoded representations and generate the final output (text, image, or prediction).
